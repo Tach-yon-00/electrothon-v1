@@ -1,17 +1,29 @@
 "use client";
 
 // ============================================================================
-// Demo Control Panel — hidden dev tools to drive the live demo narrative
-// Collapsed by default; expand to trigger state changes manually.
+// Demo Control Panel — Scenario driver (Light Theme)
 // ============================================================================
 
 import { useState } from "react";
 import type { ManholeRecord } from "@/lib/types";
+import {
+  SlidersHorizontal,
+  Flame,
+  Warning,
+  ShieldCheck,
+  SignIn,
+  SignOut,
+  Clock,
+  CheckCircle,
+  Wrench,
+  CaretDown,
+  CaretUp,
+} from "@phosphor-icons/react";
 
 interface DemoAction {
   label: string;
+  icon: typeof Flame;
   onClick: () => void;
-  /** Tailwind classes for the button flavor. */
   cls: string;
   disabled?: boolean;
 }
@@ -38,104 +50,129 @@ export function DemoPanel({
 
   const groups: { title: string; btns: DemoAction[] }[] = [
     {
-      title: "Gas",
+      title: "Atmospheric",
       btns: [
         {
           label: "Trigger Gas Warning",
+          icon: Warning,
           onClick: actions.triggerGasWarning,
-          cls: "bg-amber-500/15 text-amber-300 hover:bg-amber-500/25",
+          cls: "border-amber-200 bg-[#fbf3db] text-amber-700 hover:bg-amber-100",
         },
         {
           label: "Trigger Gas Danger",
+          icon: Flame,
           onClick: actions.triggerGasDanger,
-          cls: "bg-red-500/15 text-red-300 hover:bg-red-500/25",
+          cls: "border-red-200 bg-[#fdebec] text-red-700 hover:bg-red-100",
         },
         {
-          label: "Clear Air / Reset to Safe",
+          label: "Purge / Reset Safe",
+          icon: ShieldCheck,
           onClick: actions.resetToSafe,
-          cls: "bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25",
+          cls: "border-emerald-200 bg-[#edf3ec] text-emerald-700 hover:bg-emerald-100",
         },
       ],
     },
     {
-      title: "Worker",
+      title: "Personnel & Timer",
       btns: [
         {
-          label: "Simulate Worker Entry",
+          label: "Worker Entry",
+          icon: SignIn,
           onClick: actions.simulateEntry,
-          cls: "bg-sky-500/15 text-sky-300 hover:bg-sky-500/25",
+          cls: "border-sky-200 bg-[#e1f3fe] text-sky-700 hover:bg-sky-100",
           disabled: inside,
         },
         {
-          label: "Simulate Worker Exit",
+          label: "Worker Exit",
+          icon: SignOut,
           onClick: actions.simulateExit,
-          cls: "bg-zinc-500/15 text-zinc-300 hover:bg-zinc-500/25",
+          cls: "border-[#eaeaea] bg-[#f7f6f3] text-[#555] hover:bg-[#eaeaea]",
         },
         {
-          label: "Trigger Missed Check-in",
+          label: "Missed Check-in",
+          icon: Clock,
           onClick: actions.triggerMissedCheckin,
-          cls: "bg-orange-500/15 text-orange-300 hover:bg-orange-500/25",
+          cls: "border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100",
         },
         {
-          label: "Worker Check-in",
+          label: "Acknowledge",
+          icon: CheckCircle,
           onClick: actions.workerCheckin,
-          cls: "bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25",
+          cls: "border-emerald-200 bg-[#edf3ec] text-emerald-700 hover:bg-emerald-100",
         },
       ],
     },
     {
-      title: "Hardware",
+      title: "Hardware & Interlock",
       btns: [
         {
           label: "Toggle Sensor Fault",
+          icon: Wrench,
           onClick: actions.toggleSensorFault,
-          cls: "bg-fuchsia-500/15 text-fuchsia-300 hover:bg-fuchsia-500/25",
+          cls: "border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100",
         },
         {
-          label: "Interlock Verify (15s)",
+          label: "Interlock Purge Test (15s)",
+          icon: Clock,
           onClick: actions.startVerify,
-          cls: "bg-violet-500/15 text-violet-300 hover:bg-violet-500/25",
+          cls: "border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100",
         },
       ],
     },
   ];
 
   return (
-    <div className="rounded-xl border border-dashed border-white/15 bg-zinc-900/40">
+    <div className="overflow-hidden rounded-xl bg-white border border-[#eaeaea]">
       <button
         onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center justify-between px-4 py-2 text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500 hover:text-zinc-300"
+        className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-[#f7f6f3] transition-colors cursor-pointer"
       >
-        <span>🛠 Demo Control Panel — {selected.manhole_id} (dev only)</span>
-        <span aria-hidden>{open ? "▾" : "▸"}</span>
+        <div className="flex items-center gap-2.5">
+          <SlidersHorizontal size={15} weight="bold" className="text-[#787774]" />
+          <span className="text-xs font-semibold text-[#555] uppercase tracking-widest">
+            Scenario Driver
+          </span>
+          <span className="rounded-full bg-[#f7f6f3] border border-[#eaeaea] px-2 py-0.5 text-[10px] font-semibold text-[#787774]">
+            {selected.manhole_id}
+          </span>
+        </div>
+        <span className="text-[#787774]">
+          {open ? <CaretUp size={13} weight="bold" /> : <CaretDown size={13} weight="bold" />}
+        </span>
       </button>
 
       {open ? (
-        <div className="flex flex-wrap gap-x-8 gap-y-4 border-t border-white/10 px-4 py-3">
-          {groups.map((g) => (
-            <div key={g.title}>
-              <div className="mb-2 text-[10px] font-bold uppercase tracking-widest text-zinc-600">
-                {g.title}
+        <div className="border-t border-[#eaeaea] p-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {groups.map((g) => (
+              <div key={g.title} className="flex flex-col gap-2">
+                <div className="text-[10px] font-semibold uppercase tracking-widest text-[#787774]">
+                  {g.title}
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  {g.btns.map((b) => {
+                    const Icon = b.icon;
+                    return (
+                      <button
+                        key={b.label}
+                        onClick={b.onClick}
+                        disabled={b.disabled}
+                        className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium transition-all duration-150 ${b.cls} ${
+                          b.disabled ? "cursor-not-allowed opacity-35 pointer-events-none" : "cursor-pointer active:scale-[0.98]"
+                        }`}
+                      >
+                        <Icon size={13} weight="bold" className="shrink-0" />
+                        <span>{b.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-              <div className="flex flex-wrap gap-2">
-                {g.btns.map((b) => (
-                  <button
-                    key={b.label}
-                    onClick={b.onClick}
-                    disabled={b.disabled}
-                    className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${b.cls} ${
-                      b.disabled ? "cursor-not-allowed opacity-40" : ""
-                    }`}
-                  >
-                    {b.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ))}
-          <p className="w-full text-[10px] leading-relaxed text-zinc-600">
-            Missed check-in ×2 (or 120s without check-in while INSIDE) fires MAN DOWN.
-            &ldquo;Worker Check-in&rdquo; resets the dead-man&apos;s switch.
+            ))}
+          </div>
+
+          <p className="mt-4 pt-3 border-t border-[#eaeaea] text-[11px] text-[#787774]">
+            2 missed check-ins or a gas spike triggers emergency lockout and an incident log entry.
           </p>
         </div>
       ) : null}

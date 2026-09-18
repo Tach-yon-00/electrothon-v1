@@ -1,35 +1,106 @@
 @import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
 
 @theme inline {
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
+/* ─── Base ─────────────────────────────────────────────────────────────────── */
 html {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 body {
-  background: #09090b; /* zinc-950 */
-  color: #f4f4f5; /* zinc-100 */
-  font-family: var(--font-sans), system-ui, sans-serif;
+  background: #f7f6f3;
+  color: #111111;
+  font-family: var(--font-sans), "Helvetica Neue", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Monospace numerals stay aligned while live counters tick. */
+/* ─── Typography ─────────────────────────────────────────────────────────── */
 .font-mono,
 .tabular-nums {
   font-variant-numeric: tabular-nums;
 }
 
-/* Slim scrollbars for the alert log. */
+/* ─── Scrollbars ─────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 4px;
+  height: 4px;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.12);
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
+}
+
+/* ─── Selection ──────────────────────────────────────────────────────────── */
+::selection {
+  background: #e1f3fe;
+  color: #1f6c9f;
+}
+
+/* ─── Leaflet custom styling (minimalist map) ────────────────────────────── */
+.leaflet-tile-pane {
+  filter: grayscale(85%) contrast(90%) brightness(102%);
+}
+.leaflet-container {
+  background: #f7f6f3 !important;
+  font-family: inherit;
+}
+.leaflet-control-attribution {
+  background: rgba(255, 255, 255, 0.8) !important;
+  font-size: 9px !important;
+  color: #787774 !important;
+  padding: 2px 6px !important;
+  border-radius: 4px 0 0 0 !important;
+}
+.leaflet-control-zoom {
+  border: 1px solid #eaeaea !important;
+  border-radius: 8px !important;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+}
+.leaflet-control-zoom a {
+  background: #ffffff !important;
+  color: #111111 !important;
+  border-bottom: 1px solid #eaeaea !important;
+}
+.leaflet-control-zoom a:hover {
+  background: #f7f6f3 !important;
+}
+
+/* ─── Status radar pulse ─────────────────────────────────────────────────── */
+@keyframes radar-ping {
+  0%   { transform: scale(1);   opacity: 0.6; }
+  100% { transform: scale(2.4); opacity: 0; }
+}
+.animate-radar {
+  animation: radar-ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+/* ─── Subtle card hover lift ─────────────────────────────────────────────── */
+.card-lift {
+  transition: box-shadow 200ms ease, transform 200ms ease;
+}
+.card-lift:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  transform: translateY(-1px);
+}
+
+/* ─── Fade-up scroll entry ───────────────────────────────────────────────── */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fade-up {
+  animation: fade-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ─── Progress bar fill animation ───────────────────────────────────────── */
+.bar-fill {
+  transition: width 600ms cubic-bezier(0.16, 1, 0.3, 1);
 }
