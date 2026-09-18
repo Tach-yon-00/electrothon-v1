@@ -162,7 +162,7 @@ export function ManholeDetailModal({ manhole, onClose, onSelectForMonitoring }: 
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {manhole.peak_gas_records.map((peak) => {
-                  const gasName = { h2s: "Hydrogen Sulfide", co: "Carbon Monoxide", ch4: "Methane" }[peak.gas];
+                  const gasName = { h2s: "Hydrogen Sulfide", co: "Carbon Monoxide", ch4: "Methane", o2: "Oxygen" }[peak.gas];
                   return (
                     <div key={peak.gas} className="rounded-xl border border-[#eaeaea] bg-[#f7f6f3] p-4 flex flex-col justify-between">
                       <div>
@@ -232,11 +232,12 @@ export function ManholeDetailModal({ manhole, onClose, onSelectForMonitoring }: 
           {activeTab === "telemetry" && (
             <div className="space-y-4">
               <h4 className="text-xs font-semibold uppercase tracking-widest text-[#787774]">Real-Time Sensor Values</h4>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {[
                   { label: "H₂S", val: manhole.gas.h2s.value, unit: "ppm", status: manhole.gas.h2s.status },
                   { label: "CO",  val: manhole.gas.co.value,  unit: "ppm", status: manhole.gas.co.status  },
                   { label: "CH₄", val: manhole.gas.ch4.value, unit: "%LEL",status: manhole.gas.ch4.status },
+                  { label: "O₂",  val: manhole.gas.o2.value,  unit: "%vol",status: manhole.gas.o2.status  },
                 ].map(({ label, val, unit, status }) => (
                   <div key={label} className="rounded-xl border border-[#eaeaea] bg-[#f7f6f3] p-3">
                     <div className="text-xs text-[#787774]">{label}</div>

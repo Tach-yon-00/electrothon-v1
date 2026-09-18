@@ -80,9 +80,26 @@ export async function fetchManholesFromSupabase(): Promise<ManholeRecord[] | nul
       last_checkin_seconds_ago: 0,
       sensor_fault: row.sensor_fault ?? false,
       last_seen: Date.now(),
+      connectivity: row.connectivity || {
+        protocol: "LoRaWAN",
+        gatewayId: "GW-DEFAULT",
+        rssi: -85,
+        snr: 7.0,
+        spreadingFactor: "SF7BW125",
+        batteryVolts: 3.6,
+        batteryPct: 85,
+      },
+      maintenance_state: row.maintenance_state || "IDLE",
+      topology: row.topology || {
+        upstreamId: null,
+        downstreamId: null,
+        pipeNetwork: "Municipal Trunk Line",
+        pipeGradient: "1:200",
+        pipeDiameterMm: 450,
+      },
       history: [],
       alerts: [],
-    })) as ManholeRecord[];
+    })) as unknown as ManholeRecord[];
   } catch (err) {
     console.error("Failed to query Supabase:", err);
     return null;

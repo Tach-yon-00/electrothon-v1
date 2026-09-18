@@ -56,6 +56,7 @@ export function useSimulation() {
         h2s: makeReading("h2s", GAS_THRESHOLDS.h2s.safeMax + 3),
         co: m.gas.co,
         ch4: m.gas.ch4,
+        o2: m.gas.o2,
       };
       return {
         ...m,
@@ -63,7 +64,8 @@ export function useSimulation() {
         overall_status: computeOverallStatus(
           gas.h2s.status,
           gas.co.status,
-          gas.ch4.status
+          gas.ch4.status,
+          gas.o2.status
         ),
         alerts: [
           makeAlertEvent(
@@ -82,6 +84,7 @@ export function useSimulation() {
         h2s: makeReading("h2s", GAS_THRESHOLDS.h2s.warningMax + 8),
         co: makeReading("co", GAS_THRESHOLDS.co.warningMax + 15),
         ch4: makeReading("ch4", GAS_THRESHOLDS.ch4.warningMax + 2),
+        o2: makeReading("o2", 17.8), // O₂ depleted in danger scenario
       };
       return {
         ...m,
@@ -104,6 +107,7 @@ export function useSimulation() {
         h2s: makeReading("h2s", 4.2),
         co: makeReading("co", 18),
         ch4: makeReading("ch4", 1.6),
+        o2: makeReading("o2", 20.7),
       };
       return {
         ...m,

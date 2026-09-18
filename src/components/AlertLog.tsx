@@ -34,6 +34,10 @@ const EVENT_CONFIG: Record<
   interlock_locked:     { icon: Lock,           badgeStyle: "bg-[#f7f6f3] text-[#555] border-[#eaeaea]",        textColor: "text-[#555]",                label: "INTERLOCK"   },
   checkin_reset:        { icon: CheckCircle,    badgeStyle: "bg-[#edf3ec] text-emerald-700 border-emerald-200", textColor: "text-emerald-700",           label: "CHECK-IN"    },
   maintenance_completed:{ icon: CheckCircle,    badgeStyle: "bg-[#edf3ec] text-emerald-700 border-emerald-200", textColor: "text-emerald-700",           label: "MAINTENANCE" },
+  work_order_opened:    { icon: CheckCircle,    badgeStyle: "bg-[#fbf3db] text-amber-700 border-amber-200",     textColor: "text-amber-700",             label: "WORK ORDER"  },
+  ventilation_started:  { icon: Warning,        badgeStyle: "bg-[#fbf3db] text-amber-700 border-amber-200",     textColor: "text-amber-700",             label: "VENTILATION" },
+  permit_cleared:       { icon: CheckCircle,    badgeStyle: "bg-[#edf3ec] text-emerald-700 border-emerald-200", textColor: "text-emerald-700",           label: "PERMIT"      },
+  badge_entry:          { icon: SignIn,         badgeStyle: "bg-[#e1f3fe] text-sky-700 border-sky-200",         textColor: "text-sky-700",               label: "BADGE"       },
 };
 
 export function AlertLog({ events }: { events: AlertEvent[] }) {
