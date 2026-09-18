@@ -11,6 +11,7 @@ import {
   CheckinCard,
   InterlockCard,
   WorkerCard,
+  MaintenanceStateCard,
 } from "@/components/Cards";
 import { AlertLog } from "@/components/AlertLog";
 import { DemoPanel } from "@/components/DemoPanel";
@@ -127,10 +128,11 @@ export default function Home() {
               <div className="flex flex-col gap-4 lg:col-span-7">
                 <StatusHeader m={selected} />
                 <GasCards gas={selected.gas} />
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
                   <InterlockCard m={selected} />
                   <WorkerCard m={selected} />
                   <CheckinCard m={selected} />
+                  <MaintenanceStateCard m={selected} />
                 </div>
               </div>
 

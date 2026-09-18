@@ -1,12 +1,12 @@
 "use client";
 
 // ============================================================================
-// Interlock + Worker cards — Entry control, personnel tracking (Light Theme)
-// Clean, readable safety metrics
+// VENUS — Interlock, Worker, Dead-Man Switch & Maintenance State Cards
+// Entry control, personnel tracking, work order lifecycle
 // ============================================================================
 
 import { formatDuration } from "@/lib/format";
-import type { ManholeRecord } from "@/lib/types";
+import type { ManholeRecord, MaintenanceState } from "@/lib/types";
 import { Badge, Panel } from "./ui";
 import {
   Lock,
@@ -14,6 +14,12 @@ import {
   SpinnerGap,
   WarningOctagon,
   ShieldWarning,
+  IdentificationCard,
+  ClipboardText,
+  Fan,
+  Wrench,
+  CheckCircle,
+  HardHat,
 } from "@phosphor-icons/react";
 
 export function InterlockCard({ m }: { m: ManholeRecord }) {
@@ -43,7 +49,7 @@ export function InterlockCard({ m }: { m: ManholeRecord }) {
             <div className="flex items-center justify-between">
               <span className="text-xs text-purple-700 font-semibold flex items-center gap-1.5">
                 <SpinnerGap size={14} className="animate-spin" />
-                Pre-entry Verification
+                4-Gas Pre-Entry Sample
               </span>
               <span className="font-mono text-xs text-purple-700 font-bold">
                 {m.countdown_seconds}s remaining
@@ -77,10 +83,10 @@ export function InterlockCard({ m }: { m: ManholeRecord }) {
               </div>
               <div>
                 <div className="text-sm font-bold text-[#111] tracking-tight">
-                  {isLocked ? "Mechanically Secured" : "Hatch Unlocked"}
+                  {isLocked ? "Solenoid Deadbolt Engaged" : "Hatch Unlatched"}
                 </div>
                 <div className="text-xs text-[#787774]">
-                  {isLocked ? "Physical air lock engaged" : "Authorized for crew entry"}
+                  {isLocked ? "Fails locked on power loss" : "PTW scan confirmed"}
                 </div>
               </div>
             </div>
@@ -89,9 +95,9 @@ export function InterlockCard({ m }: { m: ManholeRecord }) {
 
         <div className="border-t border-[#eaeaea] pt-2.5 text-xs text-[#787774]">
           {isLocked
-            ? "Hatch auto-locks if gas breaches safe threshold."
+            ? "Auto-locks on gas breach or power loss."
             : isVerifying
-              ? "Verifying sensors before releasing solenoid lock."
+              ? "Awaiting 30s clean 4-gas sample + PTW scan to release bolt."
               : "Active entry permitted. Dead-man switch armed."}
         </div>
       </div>
@@ -101,6 +107,7 @@ export function InterlockCard({ m }: { m: ManholeRecord }) {
 
 export function WorkerCard({ m }: { m: ManholeRecord }) {
   const inside = m.worker_status === "INSIDE";
+  const worker = m.worker;
 
   return (
     <Panel
@@ -125,25 +132,48 @@ export function WorkerCard({ m }: { m: ManholeRecord }) {
       }
     >
       <div className="flex flex-col justify-between min-h-[120px]">
-        <div>
-          <div className="text-[10px] font-semibold text-[#787774] uppercase tracking-widest">
-            Time In Confined Space
-          </div>
-          <div className="mt-1.5 flex items-baseline gap-2">
-            <div
-              className={`font-mono text-3xl font-black tabular-nums tracking-tight ${
-                inside ? "text-amber-600" : "text-[#ccc]"
-              }`}
-            >
-              {formatDuration(m.elapsed_time_seconds)}
+        {inside && worker ? (
+          <div className="space-y-2">
+            {/* Worker identity */}
+            <div className="flex items-center gap-2 rounded-lg bg-[#f7f6f3] border border-[#eaeaea] px-2.5 py-2">
+              <IdentificationCard size={15} className="text-amber-600 shrink-0" weight="bold" />
+              <div className="min-w-0">
+                <div className="text-xs font-semibold text-[#111] truncate">{worker.name}</div>
+                <div className="font-mono text-[10px] text-[#787774]">{worker.badgeId} · {worker.entryMethod}</div>
+              </div>
             </div>
-            {inside ? (
-              <span className="text-[10px] font-bold text-amber-700 bg-[#fbf3db] px-2 py-0.5 rounded-full border border-amber-200">
-                Active
+            {/* PTW permit */}
+            <div className="flex items-center justify-between text-[10px] font-mono">
+              <span className="text-[#787774]">Permit</span>
+              <span className="font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">{worker.permitId}</span>
+            </div>
+            {/* Elapsed */}
+            <div className="flex items-baseline gap-2">
+              <span className="font-mono text-2xl font-black tabular-nums tracking-tight text-amber-600">
+                {formatDuration(m.elapsed_time_seconds)}
               </span>
-            ) : null}
+              <span className="text-[10px] text-[#787774]">in shaft</span>
+            </div>
           </div>
-        </div>
+        ) : inside ? (
+          <div>
+            <div className="text-[10px] font-semibold text-[#787774] uppercase tracking-widest">
+              Time In Confined Space
+            </div>
+            <div className="mt-1.5 flex items-baseline gap-2">
+              <div className="font-mono text-3xl font-black tabular-nums tracking-tight text-amber-600">
+                {formatDuration(m.elapsed_time_seconds)}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col justify-center h-full">
+            <div className="flex items-center gap-2 text-[#787774]">
+              <HardHat size={16} className="text-[#ccc]" weight="bold" />
+              <span className="text-xs">No personnel — hatch secured</span>
+            </div>
+          </div>
+        )}
 
         <div className="flex items-center justify-between border-t border-[#eaeaea] pt-2.5 text-xs text-[#787774]">
           <span>Max shift: 45:00</span>
@@ -229,7 +259,7 @@ export function CheckinCard({ m }: { m: ManholeRecord }) {
         ) : (
           <div className="flex flex-col justify-center h-full">
             <p className="text-xs text-[#787774] leading-relaxed">
-              Standby. Safety timer auto-arms when worker entry is confirmed.
+              Standby. Timer auto-arms on NFC badge entry confirmation.
             </p>
           </div>
         )}
@@ -238,6 +268,98 @@ export function CheckinCard({ m }: { m: ManholeRecord }) {
           <span>Physical ack required</span>
           <span className="font-mono font-semibold text-[#555]">120s interval</span>
         </div>
+      </div>
+    </Panel>
+  );
+}
+
+// Maintenance state stepper
+const MAINTENANCE_STEPS: { state: MaintenanceState; label: string }[] = [
+  { state: "IDLE",                 label: "Idle" },
+  { state: "PERMIT_REQUESTED",    label: "Permit Requested" },
+  { state: "ATMOSPHERE_PRE_CHECK", label: "Atm. Pre-Check" },
+  { state: "VENTILATION_ACTIVE",  label: "Ventilation Active" },
+  { state: "WORK_IN_PROGRESS",    label: "Work in Progress" },
+];
+
+const STATE_ORDER: MaintenanceState[] = [
+  "IDLE", "PERMIT_REQUESTED", "ATMOSPHERE_PRE_CHECK", "VENTILATION_ACTIVE", "WORK_IN_PROGRESS",
+];
+
+export function MaintenanceStateCard({ m }: { m: ManholeRecord }) {
+  const currentIdx = STATE_ORDER.indexOf(m.maintenance_state);
+  const isActive = m.maintenance_state !== "IDLE";
+  const wo = m.active_work_order;
+  const lastService = m.maintenance_history[0];
+
+  return (
+    <Panel
+      title="Maintenance State"
+      right={
+        <span className={`font-mono text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${
+          isActive
+            ? "bg-[#fbf3db] border-amber-200 text-amber-700"
+            : "bg-[#f7f6f3] border-[#eaeaea] text-[#787774]"
+        }`}>
+          {isActive ? m.maintenance_state.replace(/_/g, " ") : "IDLE"}
+        </span>
+      }
+    >
+      <div className="flex flex-col gap-3">
+        {/* Progress stepper */}
+        <div className="flex items-center gap-0.5">
+          {MAINTENANCE_STEPS.map(({ state, label }, i) => {
+            const done = i < currentIdx;
+            const active = i === currentIdx;
+            return (
+              <div key={state} className="flex-1 flex flex-col items-center gap-1">
+                <div className={`h-1.5 w-full rounded-full transition-colors ${
+                  done ? "bg-amber-500" : active ? "bg-amber-400" : "bg-[#eaeaea]"
+                }`} />
+                {active && (
+                  <span className="text-[8px] font-semibold text-amber-700 text-center leading-tight">{label}</span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {isActive && wo ? (
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 rounded-lg bg-amber-50 border border-amber-200 px-2.5 py-2">
+              <ClipboardText size={14} className="text-amber-600 shrink-0" weight="bold" />
+              <div>
+                <div className="font-mono text-[10px] font-bold text-amber-700">{wo.id}</div>
+                <div className="text-[11px] text-[#555]">{wo.type}</div>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-1.5 text-[10px]">
+              <div className="flex items-center gap-1.5">
+                <Wrench size={11} className="text-[#bbb]" />
+                <span className="text-[#787774]">Crew:</span>
+                <span className="font-medium text-[#555] truncate">{wo.crew}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <CheckCircle size={11} className={wo.lotoStatus === "CLEARED" ? "text-emerald-600" : "text-amber-600"} weight="bold" />
+                <span className="text-[#787774]">LOTO:</span>
+                <span className={`font-semibold ${wo.lotoStatus === "CLEARED" ? "text-emerald-700" : "text-amber-700"}`}>{wo.lotoStatus.replace(/_/g, " ")}</span>
+              </div>
+              {wo.blowerStatus === "ACTIVE" && wo.blowerCFM && (
+                <div className="col-span-2 flex items-center gap-1.5">
+                  <Fan size={11} className="text-sky-500 animate-spin" />
+                  <span className="text-[#787774]">Blower:</span>
+                  <span className="font-semibold text-sky-700">{wo.blowerCFM} CFM active</span>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="text-xs text-[#787774]">
+            {lastService
+              ? `No active work order. Last service: ${lastService.date} — ${lastService.type}`
+              : "No maintenance records on file."}
+          </div>
+        )}
       </div>
     </Panel>
   );

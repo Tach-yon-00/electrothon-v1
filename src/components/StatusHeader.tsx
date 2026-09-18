@@ -13,6 +13,13 @@ import {
   Flame,
   MapPin,
   Cpu,
+  WifiHigh,
+  WifiLow,
+  WifiNone,
+  BatteryFull,
+  BatteryLow,
+  BatteryWarning,
+  BatteryEmpty,
 } from "@phosphor-icons/react";
 
 const STATUS_CONFIG = {
@@ -98,6 +105,53 @@ export function StatusHeader({ m }: { m: ManholeRecord }) {
             <span className="font-bold text-[#111]">{m.manhole_id}</span>
             <span className="text-[#ccc]">|</span>
             <span className="text-[#666] truncate max-w-[220px] sm:max-w-none">{m.location}</span>
+          </div>
+
+          {/* IoT Connectivity Strip */}
+          <div className="flex flex-wrap items-center gap-2 text-[10px] font-mono text-[#787774]">
+            {/* Protocol + Signal */}
+            <div className="flex items-center gap-1.5 bg-white border border-[#eaeaea] px-2.5 py-1 rounded-lg">
+              {m.connectivity.rssi > -85
+                ? <WifiHigh size={12} className="text-emerald-600" weight="bold" />
+                : m.connectivity.rssi > -95
+                  ? <WifiLow size={12} className="text-amber-600" weight="bold" />
+                  : <WifiNone size={12} className="text-red-500" weight="bold" />
+              }
+              <span className="font-semibold text-[#555]">{m.connectivity.protocol}</span>
+              <span className="text-[#ccc]">·</span>
+              <span>{m.connectivity.rssi} dBm</span>
+              <span className="text-[#ccc]">·</span>
+              <span>SNR {m.connectivity.snr > 0 ? "+" : ""}{m.connectivity.snr.toFixed(1)} dB</span>
+              {m.connectivity.spreadingFactor && (
+                <>
+                  <span className="text-[#ccc]">·</span>
+                  <span>{m.connectivity.spreadingFactor}</span>
+                </>
+              )}
+            </div>
+            {/* Gateway */}
+            <div className="flex items-center gap-1.5 bg-white border border-[#eaeaea] px-2.5 py-1 rounded-lg">
+              <span className="text-[#bbb]">via</span>
+              <span className="font-semibold text-[#555]">{m.connectivity.gatewayId}</span>
+            </div>
+            {/* Battery */}
+            <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border ${
+              m.connectivity.batteryPct < 20
+                ? "bg-amber-50 border-amber-200 text-amber-700"
+                : "bg-white border-[#eaeaea] text-[#787774]"
+            }`}>
+              {m.connectivity.batteryPct < 10
+                ? <BatteryEmpty size={12} className="text-red-500" weight="bold" />
+                : m.connectivity.batteryPct < 20
+                  ? <BatteryWarning size={12} className="text-amber-600" weight="bold" />
+                  : m.connectivity.batteryPct < 50
+                    ? <BatteryLow size={12} className="text-emerald-600" weight="bold" />
+                    : <BatteryFull size={12} className="text-emerald-600" weight="bold" />
+              }
+              <span>{m.connectivity.batteryVolts.toFixed(2)}V</span>
+              <span className="text-[#ccc]">·</span>
+              <span className="font-semibold">{m.connectivity.batteryPct}%</span>
+            </div>
           </div>
         </div>
       </div>

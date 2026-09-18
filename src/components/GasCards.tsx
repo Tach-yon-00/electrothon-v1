@@ -1,38 +1,51 @@
 "use client";
 
 // ============================================================================
-// Gas Cards — Atmospheric Sensor Readouts (Light Theme)
-// Clean numeric-first cards with minimal chrome
+// Gas Cards — 4-Gas Atmospheric Sensor Readouts (Light Theme)
+// H₂S, CO, CH₄ + mandatory O₂ per OSHA 29 CFR 1910.146
 // ============================================================================
 
 import { GAS_THRESHOLDS } from "@/lib/config";
 import type { GasReading, ManholeRecord } from "@/lib/types";
 import { STATUS_STYLES } from "./ui";
-import { Pulse, Flame, ShieldWarning } from "@phosphor-icons/react";
+import { Pulse, Flame, ShieldWarning, Drop } from "@phosphor-icons/react";
 
 interface GasMeta {
-  key: "h2s" | "co" | "ch4";
+  key: "h2s" | "co" | "ch4" | "o2";
   formula: string;
   name: string;
   icon: typeof Flame;
+  /** O₂ uses inverted bar: full = 20.9%, depleted toward 16% */
+  isOxygen?: boolean;
 }
 
 const GAS_CONFIG: GasMeta[] = [
   { key: "h2s", formula: "H₂S", name: "Hydrogen Sulfide", icon: ShieldWarning },
   { key: "co",  formula: "CO",  name: "Carbon Monoxide",  icon: Pulse },
   { key: "ch4", formula: "CH₄", name: "Methane (%LEL)",   icon: Flame },
+  { key: "o2",  formula: "O₂",  name: "Oxygen (Atm.)",    icon: Drop, isOxygen: true },
 ];
 
 export function GasCards({ gas }: { gas: ManholeRecord["gas"] }) {
-  const readings: Record<"h2s" | "co" | "ch4", GasReading> = gas;
-
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 sm:gap-4">
-      {GAS_CONFIG.map(({ key, formula, name, icon: Icon }) => {
-        const r = readings[key];
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      {GAS_CONFIG.map(({ key, formula, name, icon: Icon, isOxygen }) => {
+        const r = gas[key] as GasReading;
         const t = GAS_THRESHOLDS[key];
         const s = STATUS_STYLES[r.status];
-        const pct = Math.min(100, Math.round((r.value / t.warningMax) * 100));
+
+        // O₂: bar fills from left showing how much O₂ remains (20.9 = full, 16 = empty)
+        // Others: bar fills toward warningMax
+        const pct = isOxygen
+          ? Math.max(0, Math.min(100, Math.round(((r.value - 16) / (20.9 - 16)) * 100)))
+          : Math.min(100, Math.round((r.value / t.warningMax) * 100));
+
+        const limitLabel = isOxygen
+          ? `Min ${t.safeMin}%vol`
+          : `Safe <${t.safeMax}${t.unit}`;
+        const dangerLabel = isOxygen
+          ? `Danger ≤${t.warningMin}%vol`
+          : `Danger ≥${t.warningMax}${t.unit}`;
 
         return (
           <div
@@ -66,27 +79,36 @@ export function GasCards({ gas }: { gas: ManholeRecord["gas"] }) {
                 <span className="font-mono text-xs text-[#787774]">{t.unit}</span>
               </div>
               <span className="text-[10px] text-[#787774] bg-[#f7f6f3] px-2 py-0.5 rounded-full">
-                {pct}% of limit
+                {isOxygen ? `${(20.9 - r.value).toFixed(1)} below norm` : `${pct}% of limit`}
               </span>
             </div>
 
-            {/* Level bar */}
+            {/* Level bar — O₂ inverted (full = safe, depleted = danger) */}
             <div className="mt-3 relative h-2 w-full overflow-hidden rounded-full bg-[#f7f6f3]">
               <div
                 className="h-full rounded-full bar-fill"
                 style={{ width: `${Math.max(4, pct)}%`, backgroundColor: s.stroke }}
               />
-              <div
-                className="absolute top-0 bottom-0 w-0.5 bg-amber-400 z-10"
-                style={{ left: `${(t.safeMax / t.warningMax) * 100}%` }}
-                title={`Safe limit: ${t.safeMax} ${t.unit}`}
-              />
+              {!isOxygen && (
+                <div
+                  className="absolute top-0 bottom-0 w-0.5 bg-amber-400 z-10"
+                  style={{ left: `${(t.safeMax / t.warningMax) * 100}%` }}
+                  title={`Safe limit: ${t.safeMax} ${t.unit}`}
+                />
+              )}
+              {isOxygen && (
+                <div
+                  className="absolute top-0 bottom-0 w-0.5 bg-amber-400 z-10"
+                  style={{ left: `${((19.5 - 16) / (20.9 - 16)) * 100}%` }}
+                  title="Min safe: 19.5 %vol"
+                />
+              )}
             </div>
 
             {/* Footer */}
             <div className="mt-3 flex items-center justify-between border-t border-[#eaeaea] pt-2.5 text-[10px] font-mono text-[#787774]">
-              <span>Safe &lt;{t.safeMax}{t.unit}</span>
-              <span className="text-red-600 font-semibold">Danger &ge;{t.warningMax}{t.unit}</span>
+              <span>{limitLabel}</span>
+              <span className="text-red-600 font-semibold">{dangerLabel}</span>
             </div>
           </div>
         );

@@ -34,6 +34,7 @@ function MapInternal({
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const markersRef = useRef<Map<string, any>>(new Map());
+  const pipeLinesRef = useRef<any[]>([]);
   const [L, setL] = useState<any>(null);
 
   useEffect(() => {
@@ -63,12 +64,53 @@ function MapInternal({
     mapInstanceRef.current = map;
     requestAnimationFrame(() => map.invalidateSize());
 
+    // Draw sewer pipe topology lines between connected nodes
+    const coordMap = new Map(
+      manholes.map((m) => [m.manhole_id, [m.coordinates.lat, m.coordinates.lng] as [number, number]])
+    );
+    pipeLinesRef.current.forEach((line) => line.remove());
+    pipeLinesRef.current = [];
+
+    const drawnPairs = new Set<string>();
+    manholes.forEach((m) => {
+      const downId = m.topology.downstreamId;
+      if (!downId) return;
+      const pairKey = [m.manhole_id, downId].sort().join("-");
+      if (drawnPairs.has(pairKey)) return;
+      drawnPairs.add(pairKey);
+
+      const from = coordMap.get(m.manhole_id);
+      const to = coordMap.get(downId);
+      if (!from || !to) return;
+
+      const line = L.polyline([from, to], {
+        color: "#b0b0b0",
+        weight: 2,
+        dashArray: "5 5",
+        opacity: 0.7,
+      }).addTo(map);
+
+      const downNode = manholes.find((n) => n.manhole_id === downId);
+      if (downNode) {
+        line.bindTooltip(
+          `<div style="font-family:system-ui,sans-serif;font-size:10px;color:#555;">
+            <strong style="font-size:11px;color:#111;">${m.topology.pipeNetwork}</strong><br/>
+            ${m.manhole_id} → ${downId}<br/>
+            Ø${m.topology.pipeDiameterMm}mm · Grade ${m.topology.pipeGradient}
+          </div>`,
+          { sticky: true, opacity: 1 }
+        );
+      }
+      pipeLinesRef.current.push(line);
+    });
+
     return () => {
       map.remove();
       mapInstanceRef.current = null;
       markersRef.current.clear();
+      pipeLinesRef.current = [];
     };
-  }, [L]);
+  }, [L, manholes]);
 
   const filteredManholes = useMemo(() => {
     if (!searchQuery.trim()) return manholes;
@@ -276,9 +318,7 @@ export function CityMap(props: Props) {
       {/* Under Maintenance Section */}
       {(() => {
         const underMaintenance = props.manholes.filter(
-          (m) => m.worker_status === "INSIDE" ||
-                 (m.maintenance_history.length > 0 &&
-                  new Date(m.maintenance_history[0].date).getTime() > Date.now() - 365 * 24 * 60 * 60 * 1000)
+          (m) => m.maintenance_state !== "IDLE"
         );
 
         if (underMaintenance.length === 0) return null;
