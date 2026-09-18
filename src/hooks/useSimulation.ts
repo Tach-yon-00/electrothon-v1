@@ -1,12 +1,15 @@
 "use client";
 
 // ============================================================================
-// Manhole Guardian — Simulation Hook
+// VENUS — Simulation Hook
 // ----------------------------------------------------------------------------
 // Owns all live state for the dashboard: the array of ManholeRecords, a 1s
 // simulation tick, and every demo action. Components stay dumb/presentational.
-// The record shape + accessor pattern mirrors what a Firebase realtime
-// listener would provide — swap the internals, keep this hook's API.
+//
+// Hybrid mode for MH-02:
+//   - When ESP32 is transmitting (Supabase Realtime), CO/CH₄ come from hardware.
+//   - When ESP32 is offline (> 30s stale), full mock simulation resumes.
+//   - H₂S and O₂ are always mock-simulated (no sensors on ESP32).
 // ============================================================================
 
 import { useCallback, useEffect, useState } from "react";
@@ -18,16 +21,30 @@ import {
   makeReading,
   stepSimulation,
 } from "@/lib/mockData";
+import { useESP32Stream } from "./useESP32Stream";
 import type { AlertEvent, ManholeRecord } from "@/lib/types";
 
+/** Manhole ID wired to the ESP32 hardware node */
+const ESP32_NODE_ID = "MH-02";
+
+/** Map raw ADC value (0-4095 ESP32 12-bit) to approximate ppm/% using calibration curve */
+function rawToCO(raw: number): number {
+  // MQ-7 linear approximation for demo: 0 raw = 0 ppm, 4095 raw ≈ 500 ppm
+  return Math.round((raw / 4095) * 500 * 10) / 10;
+}
+function rawToCH4(raw: number): number {
+  // MQ-4 to %LEL approximation: 0 raw = 0%, 4095 raw ≈ 25% LEL
+  return Math.round((raw / 4095) * 25 * 10) / 10;
+}
+
 export function useSimulation() {
-  // Lazy initializer so the mock "DB fetch" only runs once per client session.
-  // NOTE: returns clock-seeded data; first paint is hydrate-gated in the page
-  // (see useIsClient) so SSR/client timestamp differences never mismatch.
   const [manholes, setManholes] = useState<ManholeRecord[]>(() =>
     getInitialManholes()
   );
   const [selectedId, setSelectedId] = useState("MH-01");
+
+  // --- ESP32 hardware stream for MH-02 ------------------------------------
+  const { reading: esp32Reading, isLive: esp32Live } = useESP32Stream(ESP32_NODE_ID);
 
   // --- 1s simulation heartbeat --------------------------------------------
   useEffect(() => {
@@ -36,6 +53,53 @@ export function useSimulation() {
     }, 1000);
     return () => clearInterval(id);
   }, []);
+
+  // --- Merge ESP32 data into MH-02 when live ------------------------------
+  useEffect(() => {
+    if (!esp32Live || !esp32Reading) return;
+
+    setManholes((prev) =>
+      prev.map((m) => {
+        if (m.manhole_id !== ESP32_NODE_ID) return m;
+
+        // Override CO and CH₄ with real hardware values
+        const co  = makeReading("co",  rawToCO(esp32Reading.co_raw));
+        const ch4 = makeReading("ch4", rawToCH4(esp32Reading.ch4_raw));
+        // H₂S and O₂ continue from mock simulation
+        const h2s = m.gas.h2s;
+        const o2  = m.gas.o2;
+
+        const overall = computeOverallStatus(h2s.status, co.status, ch4.status, o2.status);
+
+        // Add alert if status changed due to hardware reading
+        const alerts =
+          overall !== m.overall_status
+            ? [
+                makeAlertEvent(
+                  overall === "DANGER" ? "gas_danger" : overall === "WARNING" ? "gas_warning" : "checkin_reset",
+                  `ESP32 hardware: CO ${co.value.toFixed(1)} ppm · CH₄ ${ch4.value.toFixed(1)} %LEL — ${overall}`
+                ),
+                ...m.alerts,
+              ]
+            : m.alerts;
+
+        return {
+          ...m,
+          gas: { h2s, co, ch4, o2 },
+          overall_status: overall,
+          alerts,
+          last_seen: new Date(esp32Reading.created_at).getTime(),
+          // Show hardware source in connectivity metadata
+          connectivity: {
+            ...m.connectivity,
+            gatewayId: "ESP32-DIRECT",
+            protocol: "LoRaWAN" as const,
+            rssi: -72, // direct WiFi is stronger than LoRa
+          },
+        };
+      })
+    );
+  }, [esp32Reading, esp32Live]);
 
   const selected =
     manholes.find((m) => m.manhole_id === selectedId) ?? manholes[0];
@@ -46,8 +110,6 @@ export function useSimulation() {
     },
     []
   );
-
-  // --- Demo actions --------------------------------------------------------
   // Each mutates the selected manhole the way a real event stream would.
 
   const triggerGasWarning = useCallback(() => {

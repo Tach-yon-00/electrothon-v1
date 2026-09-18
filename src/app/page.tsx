@@ -21,12 +21,14 @@ import { ManholeSelector } from "@/components/ManholeSelector";
 import { StatusHeader } from "@/components/StatusHeader";
 import { ManholeDetailModal } from "@/components/ManholeDetailModal";
 import { useSimulation } from "@/hooks/useSimulation";
+import { useESP32Stream } from "@/hooks/useESP32Stream";
 import type { ManholeRecord } from "@/lib/types";
 import {
   ShieldCheck,
   Gauge,
   MapTrifold,
   Broadcast,
+  HardDrive,
 } from "@phosphor-icons/react";
 
 // Dynamically import Leaflet Map to avoid SSR window reference errors
@@ -48,6 +50,9 @@ export default function Home() {
 
   const [activeView, setActiveView] = useState<"dashboard" | "map">("dashboard");
   const [modalManhole, setModalManhole] = useState<ManholeRecord | null>(null);
+
+  // ESP32 hardware node live status indicator (MH-02)
+  const { isLive: esp32Live } = useESP32Stream("MH-02");
 
   return (
     <div className="min-h-[100dvh] bg-[#f7f6f3] text-[#111111]">
@@ -100,6 +105,17 @@ export default function Home() {
             <div className="flex items-center gap-1.5 rounded-full bg-[#edf3ec] border border-emerald-200 px-3 py-1.5 text-xs font-semibold text-emerald-700">
               <Broadcast size={12} weight="bold" className="animate-pulse" />
               <span>Live · 1s</span>
+            </div>
+
+            {/* ESP32 hardware node badge */}
+            <div className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
+              esp32Live
+                ? "bg-sky-50 border-sky-200 text-sky-700"
+                : "bg-[#f7f6f3] border-[#eaeaea] text-[#787774]"
+            }`}>
+              <HardDrive size={12} weight="bold" />
+              <span>{esp32Live ? "MH-02 · ESP32 Live" : "MH-02 · Mock"}</span>
+              {esp32Live && <span className="h-1.5 w-1.5 rounded-full bg-sky-400 animate-pulse" />}
             </div>
           </div>
         </header>

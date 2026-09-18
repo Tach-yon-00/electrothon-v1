@@ -1,142 +1,83 @@
 // ============================================================================
-// Supabase Client Integration & Local Sync Provider
-// Supports cloud Supabase tables with seamless fallback to local mock store
+// VENUS — Supabase Client + ESP32 sensor data helpers
 // ============================================================================
 
 import { createClient } from "@supabase/supabase-js";
-import type { ManholeRecord, MaintenanceRecord, PeakGasRecord } from "./types";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
 
-export const isSupabaseConfigured = Boolean(
-  supabaseUrl &&
-  supabaseAnonKey &&
-  supabaseUrl !== "https://your-project.supabase.co"
-);
+export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 
 export const supabase = isSupabaseConfigured
-  ? createClient(supabaseUrl, supabaseAnonKey)
+  ? createClient(supabaseUrl, supabaseAnonKey, {
+      realtime: { params: { eventsPerSecond: 10 } },
+    })
   : null;
 
-/**
- * SQL Schema for Supabase Setup:
- *
- * CREATE TABLE IF NOT EXISTS manholes (
- *   manhole_id TEXT PRIMARY KEY,
- *   location TEXT NOT NULL,
- *   lat DOUBLE PRECISION NOT NULL,
- *   lng DOUBLE PRECISION NOT NULL,
- *   overall_status TEXT NOT NULL,
- *   worker_status TEXT NOT NULL,
- *   interlock_status TEXT NOT NULL,
- *   sensor_fault BOOLEAN DEFAULT FALSE,
- *   specs JSONB,
- *   gas JSONB,
- *   peak_gas_records JSONB,
- *   maintenance_history JSONB,
- *   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
- * );
- */
-
-/** Fetch all manholes from Supabase, or return null if not available */
-export async function fetchManholesFromSupabase(): Promise<ManholeRecord[] | null> {
-  if (!supabase) return null;
-
-  try {
-    const { data, error } = await supabase
-      .from("manholes")
-      .select("*")
-      .order("manhole_id");
-
-    if (error || !data || data.length === 0) {
-      console.warn("Supabase fetch returned empty or error:", error?.message);
-      return null;
-    }
-
-    return data.map((row) => ({
-      manhole_id: row.manhole_id,
-      location: row.location,
-      coordinates: {
-        lat: row.lat,
-        lng: row.lng,
-      },
-      specs: row.specs || {
-        depthMeters: 3.0,
-        diameterCm: 60,
-        installedYear: 2022,
-        coverType: "Ductile Iron Class D400",
-        drainageNetwork: "Primary Municipal Line",
-        zone: "Central Metro",
-      },
-      peak_gas_records: row.peak_gas_records || [],
-      maintenance_history: row.maintenance_history || [],
-      gas: row.gas,
-      overall_status: row.overall_status,
-      worker_status: row.worker_status,
-      elapsed_time_seconds: 0,
-      interlock_status: row.interlock_status,
-      countdown_seconds: null,
-      last_checkin_seconds_ago: 0,
-      sensor_fault: row.sensor_fault ?? false,
-      last_seen: Date.now(),
-      connectivity: row.connectivity || {
-        protocol: "LoRaWAN",
-        gatewayId: "GW-DEFAULT",
-        rssi: -85,
-        snr: 7.0,
-        spreadingFactor: "SF7BW125",
-        batteryVolts: 3.6,
-        batteryPct: 85,
-      },
-      maintenance_state: row.maintenance_state || "IDLE",
-      topology: row.topology || {
-        upstreamId: null,
-        downstreamId: null,
-        pipeNetwork: "Municipal Trunk Line",
-        pipeGradient: "1:200",
-        pipeDiameterMm: 450,
-      },
-      history: [],
-      alerts: [],
-    })) as unknown as ManholeRecord[];
-  } catch (err) {
-    console.error("Failed to query Supabase:", err);
-    return null;
-  }
+// ---------------------------------------------------------------------------
+// ESP32 sensor reading shape (matches what the Arduino POSTs)
+// ---------------------------------------------------------------------------
+export interface ESP32Reading {
+  id: number;
+  manhole_id: string;
+  co_raw: number;
+  ch4_raw: number;
+  co_status: "SAFE" | "WARNING" | "DANGER";
+  ch4_status: "SAFE" | "WARNING" | "DANGER";
+  overall_status: "SAFE" | "WARNING" | "DANGER";
+  ir_active: boolean;
+  button_pressed: boolean;
+  timestamp: string; // ISO 8601
+  created_at: string;
 }
 
-/** Sync or save a manhole record state to Supabase */
-export async function upsertManholeToSupabase(m: ManholeRecord): Promise<boolean> {
-  if (!supabase) return false;
+/**
+ * Fetch the latest reading for a given manhole from Supabase.
+ * Returns null if Supabase is not configured or no rows exist.
+ */
+export async function fetchLatestReading(manholeId: string): Promise<ESP32Reading | null> {
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .from("sensor_readings")
+    .select("*")
+    .eq("manhole_id", manholeId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .single();
 
-  try {
-    const { error } = await supabase.from("manholes").upsert(
+  if (error || !data) return null;
+  return data as ESP32Reading;
+}
+
+/**
+ * Subscribe to realtime inserts for a given manhole.
+ * Calls onReading each time the ESP32 posts a new row.
+ * Returns an unsubscribe function.
+ */
+export function subscribeToReadings(
+  manholeId: string,
+  onReading: (r: ESP32Reading) => void
+): () => void {
+  if (!supabase) return () => {};
+
+  const channel = supabase
+    .channel(`sensor_readings:${manholeId}`)
+    .on(
+      "postgres_changes",
       {
-        manhole_id: m.manhole_id,
-        location: m.location,
-        lat: m.coordinates.lat,
-        lng: m.coordinates.lng,
-        overall_status: m.overall_status,
-        worker_status: m.worker_status,
-        interlock_status: m.interlock_status,
-        sensor_fault: m.sensor_fault,
-        specs: m.specs,
-        gas: m.gas,
-        peak_gas_records: m.peak_gas_records,
-        maintenance_history: m.maintenance_history,
-        updated_at: new Date().toISOString(),
+        event: "INSERT",
+        schema: "public",
+        table: "sensor_readings",
+        filter: `manhole_id=eq.${manholeId}`,
       },
-      { onConflict: "manhole_id" }
-    );
+      (payload) => {
+        onReading(payload.new as ESP32Reading);
+      }
+    )
+    .subscribe();
 
-    if (error) {
-      console.error("Supabase upsert error:", error);
-      return false;
-    }
-    return true;
-  } catch (err) {
-    console.error("Error upserting to Supabase:", err);
-    return false;
-  }
+  return () => {
+    supabase.removeChannel(channel);
+  };
 }
