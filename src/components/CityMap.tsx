@@ -35,6 +35,7 @@ function MapInternal({
   const mapInstanceRef = useRef<any>(null);
   const markersRef = useRef<Map<string, any>>(new Map());
   const pipeLinesRef = useRef<any[]>([]);
+  const pipesDrawnRef = useRef(false);
   const [L, setL] = useState<any>(null);
 
   useEffect(() => {
@@ -64,12 +65,24 @@ function MapInternal({
     mapInstanceRef.current = map;
     requestAnimationFrame(() => map.invalidateSize());
 
-    // Draw sewer pipe topology lines between connected nodes
+    return () => {
+      map.remove();
+      mapInstanceRef.current = null;
+      markersRef.current.clear();
+      pipeLinesRef.current = [];
+      pipesDrawnRef.current = false;
+    };
+  }, [L]);
+
+  // Draw topology pipe lines ONCE after map is ready — coordinates never change
+  useEffect(() => {
+    if (!mapInstanceRef.current || !L || pipesDrawnRef.current) return;
+    pipesDrawnRef.current = true;
+
+    const map = mapInstanceRef.current;
     const coordMap = new Map(
       manholes.map((m) => [m.manhole_id, [m.coordinates.lat, m.coordinates.lng] as [number, number]])
     );
-    pipeLinesRef.current.forEach((line) => line.remove());
-    pipeLinesRef.current = [];
 
     const drawnPairs = new Set<string>();
     manholes.forEach((m) => {
@@ -90,26 +103,16 @@ function MapInternal({
         opacity: 0.7,
       }).addTo(map);
 
-      const downNode = manholes.find((n) => n.manhole_id === downId);
-      if (downNode) {
-        line.bindTooltip(
-          `<div style="font-family:system-ui,sans-serif;font-size:10px;color:#555;">
-            <strong style="font-size:11px;color:#111;">${m.topology.pipeNetwork}</strong><br/>
-            ${m.manhole_id} → ${downId}<br/>
-            Ø${m.topology.pipeDiameterMm}mm · Grade ${m.topology.pipeGradient}
-          </div>`,
-          { sticky: true, opacity: 1 }
-        );
-      }
+      line.bindTooltip(
+        `<div style="font-family:system-ui,sans-serif;font-size:10px;color:#555;">
+          <strong style="font-size:11px;color:#111;">${m.topology.pipeNetwork}</strong><br/>
+          ${m.manhole_id} → ${downId}<br/>
+          Ø${m.topology.pipeDiameterMm}mm · Grade ${m.topology.pipeGradient}
+        </div>`,
+        { sticky: true, opacity: 1 }
+      );
       pipeLinesRef.current.push(line);
     });
-
-    return () => {
-      map.remove();
-      mapInstanceRef.current = null;
-      markersRef.current.clear();
-      pipeLinesRef.current = [];
-    };
   }, [L, manholes]);
 
   const filteredManholes = useMemo(() => {
