@@ -72,15 +72,15 @@ export function GasCards({ gas }: { gas: ManholeRecord["gas"] }) {
             </div>
 
             {/* Primary readout */}
-            <div className="mt-4 flex items-baseline justify-between">
+            <div className="mt-4 flex items-baseline justify-between gap-2">
               <div className="flex items-baseline gap-1.5">
                 <span className={`font-mono text-3xl sm:text-4xl font-black tracking-tight tabular-nums ${s.text}`}>
                   {r.value.toFixed(1)}
                 </span>
                 <span className="font-mono text-xs text-[#787774]">{t.unit}</span>
               </div>
-              <span className="text-[10px] text-[#787774] bg-[#f7f6f3] px-2 py-0.5 rounded-full">
-                {isOxygen ? `${(20.9 - r.value).toFixed(1)} below norm` : `${pct}% of limit`}
+              <span className="text-[10px] text-[#787774] bg-[#f7f6f3] px-2 py-0.5 rounded-full whitespace-nowrap shrink-0">
+                {isOxygen ? `${(20.9 - r.value).toFixed(1)}↓` : `${pct}%`}
               </span>
             </div>
 

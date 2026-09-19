@@ -333,9 +333,9 @@ export function MaintenanceStateCard({ m }: { m: ManholeRecord }) {
                 <div className="text-[11px] text-[#555]">{wo.type}</div>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-1.5 text-[10px]">
+            <div className="space-y-1.5 text-[10px]">
               <div className="flex items-center gap-1.5">
-                <Wrench size={11} className="text-[#bbb]" />
+                <Wrench size={11} className="text-[#bbb]" weight="bold" />
                 <span className="text-[#787774]">Crew:</span>
                 <span className="font-medium text-[#555] truncate">{wo.crew}</span>
               </div>
@@ -345,7 +345,7 @@ export function MaintenanceStateCard({ m }: { m: ManholeRecord }) {
                 <span className={`font-semibold ${wo.lotoStatus === "CLEARED" ? "text-emerald-700" : "text-amber-700"}`}>{wo.lotoStatus.replace(/_/g, " ")}</span>
               </div>
               {wo.blowerStatus === "ACTIVE" && wo.blowerCFM && (
-                <div className="col-span-2 flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5">
                   <Fan size={11} className="text-sky-500 animate-spin" />
                   <span className="text-[#787774]">Blower:</span>
                   <span className="font-semibold text-sky-700">{wo.blowerCFM} CFM active</span>
