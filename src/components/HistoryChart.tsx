@@ -31,9 +31,11 @@ export function HistoryChart({ history }: { history: HistoryPoint[] }) {
   const isClient = useIsClient();
   const now = useNow(10_000);
 
-  const data = history
-    .filter((p) => now - p.timestamp <= HISTORY_WINDOW_MS)
-    .map((p) => ({ ...p, timeLabel: formatTime(p.timestamp) }));
+  const data = isClient
+    ? history
+        .filter((p) => now - p.timestamp <= HISTORY_WINDOW_MS)
+        .map((p) => ({ ...p, timeLabel: formatTime(p.timestamp) }))
+    : [];
 
   return (
     <Panel

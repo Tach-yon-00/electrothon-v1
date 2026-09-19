@@ -79,7 +79,7 @@ export function AlertLog({ events }: { events: AlertEvent[] }) {
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="font-mono text-[10px] text-[#bbb]">
+                    <span className="font-mono text-[10px] text-[#bbb]" suppressHydrationWarning>
                       {formatTime(e.timestamp)}
                     </span>
                     <span className={`font-mono text-[9px] font-bold tracking-widest uppercase px-1.5 py-0.5 rounded-full border ${cfg.badgeStyle}`}>
