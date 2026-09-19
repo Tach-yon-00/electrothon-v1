@@ -77,9 +77,16 @@ export function subscribeToReadings(
         }
       }
     )
-    .subscribe((status) => {
+    .subscribe((status, err) => {
+      console.log('[VENUS] Realtime status:', status, err ? `Error: ${err}` : '');
       if (status === "SUBSCRIBED") {
         console.log("[VENUS] Supabase Realtime connected for", manholeId);
+      } else if (status === "CHANNEL_ERROR") {
+        console.error("[VENUS] Realtime channel error:", err);
+      } else if (status === "TIMED_OUT") {
+        console.warn("[VENUS] Realtime connection timed out");
+      } else if (status === "CLOSED") {
+        console.warn("[VENUS] Realtime connection closed");
       }
     });
 

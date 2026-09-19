@@ -27,7 +27,17 @@ export function useESP32Stream(manholeId: string): ESP32StreamState {
 
   function applyReading(r: ESP32Reading) {
     // Only update if this is actually a new row
-    if (r.id === lastIdRef.current) return;
+    if (r.id === lastIdRef.current) {
+      console.log('[ESP32] Duplicate reading skipped, id:', r.id);
+      return;
+    }
+    console.log('[ESP32] New reading received:', {
+      id: r.id,
+      co_raw: r.co_raw,
+      ch4_raw: r.ch4_raw,
+      age_ms: Date.now() - new Date(r.created_at).getTime(),
+      created_at: r.created_at
+    });
     lastIdRef.current  = r.id;
     lastAtRef.current  = Date.now();
     setReading(r);
