@@ -28,13 +28,12 @@ export interface ESP32Reading {
   overall_status: "SAFE" | "WARNING" | "DANGER";
   ir_active: boolean;
   button_pressed: boolean;
-  timestamp: string; // ISO 8601
+  timestamp: string;
   created_at: string;
 }
 
 /**
  * Fetch the latest reading for a given manhole from Supabase.
- * Returns null if Supabase is not configured or no rows exist.
  */
 export async function fetchLatestReading(manholeId: string): Promise<ESP32Reading | null> {
   if (!supabase) return null;
@@ -51,8 +50,8 @@ export async function fetchLatestReading(manholeId: string): Promise<ESP32Readin
 }
 
 /**
- * Subscribe to realtime inserts for a given manhole.
- * Calls onReading each time the ESP32 posts a new row.
+ * Subscribe to realtime inserts — no row-level filter (avoids Supabase
+ * Realtime filter index requirement). Filter by manholeId client-side.
  * Returns an unsubscribe function.
  */
 export function subscribeToReadings(
@@ -62,20 +61,27 @@ export function subscribeToReadings(
   if (!supabase) return () => {};
 
   const channel = supabase
-    .channel(`sensor_readings:${manholeId}`)
+    .channel("sensor_readings_all")
     .on(
       "postgres_changes",
       {
         event: "INSERT",
         schema: "public",
         table: "sensor_readings",
-        filter: `manhole_id=eq.${manholeId}`,
+        // No filter here — filter client-side to avoid Realtime index requirement
       },
       (payload) => {
-        onReading(payload.new as ESP32Reading);
+        const row = payload.new as ESP32Reading;
+        if (row.manhole_id === manholeId) {
+          onReading(row);
+        }
       }
     )
-    .subscribe();
+    .subscribe((status) => {
+      if (status === "SUBSCRIBED") {
+        console.log("[VENUS] Supabase Realtime connected for", manholeId);
+      }
+    });
 
   return () => {
     supabase.removeChannel(channel);
