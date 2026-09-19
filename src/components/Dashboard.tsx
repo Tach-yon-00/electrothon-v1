@@ -51,100 +51,113 @@ export function Dashboard() {
   const [activeView, setActiveView] = useState<"dashboard" | "map">("dashboard");
   const [modalManhole, setModalManhole] = useState<ManholeRecord | null>(null);
 
-  // ESP32 hardware node live status indicator (MH-02)
   const { isLive: esp32Live } = useESP32Stream("MH-02");
 
   return (
     <div className="min-h-[100dvh] bg-[#f7f6f3] text-[#111111]">
-      <div className="mx-auto flex max-w-7xl flex-col gap-4 p-3 sm:p-6">
+      <div className="mx-auto flex max-w-7xl flex-col gap-3 sm:gap-4 p-3 sm:p-5 lg:p-6">
 
-        {/* Header */}
-        <header className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-white border border-[#eaeaea] px-5 py-3.5">
-          <div className="flex items-center gap-3.5">
-            <div className="grid h-10 w-10 place-items-center rounded-xl bg-[#edf3ec] text-emerald-700">
-              <ShieldCheck size={22} weight="bold" />
+        {/* ── Header ────────────────────────────────────────────────────── */}
+        <header className="slide-down flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-white border border-[#eaeaea] px-4 py-3 sm:px-5 sm:py-3.5">
+          {/* Brand */}
+          <div className="flex items-center gap-3">
+            <div className="grid h-9 w-9 sm:h-10 sm:w-10 shrink-0 place-items-center rounded-xl bg-[#edf3ec] text-emerald-700">
+              <ShieldCheck size={20} weight="bold" />
             </div>
             <div>
-              <h1 className="font-mono text-base sm:text-lg font-bold tracking-tight text-[#111]">
+              <h1 className="font-mono text-sm sm:text-base font-bold tracking-tight text-[#111]">
                 VENUS
               </h1>
-              <p className="text-xs text-[#787774]">
-                Vehicular & Environmental Network Utility System
+              <p className="hidden sm:block text-[11px] text-[#787774]">
+                Vehicular &amp; Environmental Network Utility System
               </p>
             </div>
           </div>
 
+          {/* Controls */}
           <div className="flex flex-wrap items-center gap-2">
             {/* View switcher */}
             <div className="flex rounded-xl bg-[#f7f6f3] p-0.5 text-xs">
               <button
                 onClick={() => setActiveView("dashboard")}
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-medium transition-all cursor-pointer ${
+                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-medium transition-all duration-200 cursor-pointer touch-target ${
                   activeView === "dashboard"
                     ? "bg-white text-[#111] shadow-xs border border-[#eaeaea]"
                     : "text-[#787774] hover:text-[#111]"
                 }`}
               >
-                <Gauge size={14} weight="bold" />
-                <span>Dashboard</span>
+                <Gauge size={13} weight="bold" />
+                <span className="hidden xs:inline">Dashboard</span>
               </button>
               <button
                 onClick={() => setActiveView("map")}
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-medium transition-all cursor-pointer ${
+                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-medium transition-all duration-200 cursor-pointer touch-target ${
                   activeView === "map"
                     ? "bg-white text-[#111] shadow-xs border border-[#eaeaea]"
                     : "text-[#787774] hover:text-[#111]"
                 }`}
               >
-                <MapTrifold size={14} weight="bold" />
-                <span>City Map ({manholes.length})</span>
+                <MapTrifold size={13} weight="bold" />
+                <span className="hidden xs:inline">Map</span>
+                <span className="text-[10px] tabular-nums text-[#787774]">({manholes.length})</span>
               </button>
             </div>
 
-            {/* Live telemetry badge */}
-            <div className="flex items-center gap-1.5 rounded-full bg-[#edf3ec] border border-emerald-200 px-3 py-1.5 text-xs font-semibold text-emerald-700">
-              <Broadcast size={12} weight="bold" className="animate-pulse" />
-              <span>Live · 1s</span>
+            {/* Live badge */}
+            <div className="flex items-center gap-1.5 rounded-full bg-[#edf3ec] border border-emerald-200 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-700">
+              <Broadcast size={11} weight="bold" className="animate-pulse" />
+              <span className="hidden sm:inline">Live ·</span>
+              <span>1s</span>
             </div>
 
-            {/* ESP32 hardware node badge */}
-            <div className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
+            {/* ESP32 badge */}
+            <div className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-[11px] font-semibold transition-all duration-500 ${
               esp32Live
                 ? "bg-sky-50 border-sky-200 text-sky-700"
                 : "bg-[#f7f6f3] border-[#eaeaea] text-[#787774]"
             }`}>
-              <HardDrive size={12} weight="bold" />
-              <span>{esp32Live ? "MH-02 · ESP32 Live" : "MH-02 · Mock"}</span>
-              {esp32Live && <span className="h-1.5 w-1.5 rounded-full bg-sky-400 animate-pulse" />}
+              <HardDrive size={11} weight="bold" />
+              <span className="hidden sm:inline">{esp32Live ? "MH-02 · ESP32 Live" : "MH-02 · Mock"}</span>
+              <span className="sm:hidden">{esp32Live ? "Live" : "Mock"}</span>
+              <span className={`h-1.5 w-1.5 rounded-full bg-sky-400 transition-all duration-500 ${esp32Live ? "opacity-100 animate-pulse" : "opacity-0"}`} />
             </div>
           </div>
         </header>
 
-        {/* City Map View */}
+        {/* ── City Map View ─────────────────────────────────────────────── */}
         {activeView === "map" && (
-          <CityMap
-            manholes={manholes}
-            selectedId={selectedId}
-            onSelectManhole={(id: string) => setSelectedId(id)}
-            onOpenHistory={(m: ManholeRecord) => setModalManhole(m)}
-          />
-        )}
-
-        {/* Dashboard View */}
-        {activeView === "dashboard" && (
-          <>
-            <ManholeSelector
+          <div className="view-enter">
+            <CityMap
               manholes={manholes}
               selectedId={selectedId}
-              onSelect={setSelectedId}
+              onSelectManhole={(id: string) => setSelectedId(id)}
+              onOpenHistory={(m: ManholeRecord) => setModalManhole(m)}
             />
+          </div>
+        )}
 
-            <main className="grid grid-cols-1 gap-4 lg:grid-cols-12">
-              {/* Left: Status + Gas + Safety Cards */}
-              <div className="flex flex-col gap-4 lg:col-span-7">
-                <StatusHeader m={selected} />
-                <GasCards gas={selected.gas} />
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
+        {/* ── Dashboard View ────────────────────────────────────────────── */}
+        {activeView === "dashboard" && (
+          <div className="view-enter flex flex-col gap-3 sm:gap-4">
+            {/* Node selector */}
+            <div className="fade-up stagger-1">
+              <ManholeSelector
+                manholes={manholes}
+                selectedId={selectedId}
+                onSelect={setSelectedId}
+              />
+            </div>
+
+            <main className="grid grid-cols-1 gap-3 sm:gap-4 lg:grid-cols-12">
+              {/* Left column */}
+              <div className="flex flex-col gap-3 sm:gap-4 lg:col-span-7">
+                <div className="fade-up stagger-2">
+                  <StatusHeader m={selected} />
+                </div>
+                <div className="fade-up stagger-3">
+                  <GasCards gas={selected.gas} />
+                </div>
+                <div className="fade-up stagger-4 grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
                   <InterlockCard m={selected} />
                   <WorkerCard m={selected} />
                   <CheckinCard m={selected} />
@@ -152,19 +165,25 @@ export function Dashboard() {
                 </div>
               </div>
 
-              {/* Right: Chart + Log */}
-              <div className="flex flex-col gap-4 lg:col-span-5">
-                <HistoryChart history={selected.history} />
-                <AlertLog events={selected.alerts} />
+              {/* Right column */}
+              <div className="flex flex-col gap-3 sm:gap-4 lg:col-span-5">
+                <div className="fade-up stagger-3">
+                  <HistoryChart history={selected.history} />
+                </div>
+                <div className="fade-up stagger-4">
+                  <AlertLog events={selected.alerts} />
+                </div>
               </div>
             </main>
 
-            <DemoPanel selected={selected} actions={actions} />
-          </>
+            <div className="fade-up stagger-5">
+              <DemoPanel selected={selected} actions={actions} />
+            </div>
+          </div>
         )}
 
-        {/* Manhole Detail Modal */}
-        {modalManhole ? (
+        {/* ── Modal ─────────────────────────────────────────────────────── */}
+        {modalManhole && (
           <ManholeDetailModal
             manhole={modalManhole}
             onClose={() => setModalManhole(null)}
@@ -173,12 +192,12 @@ export function Dashboard() {
               setActiveView("dashboard");
             }}
           />
-        ) : null}
+        )}
 
-        {/* Footer */}
-        <footer className="mt-2 flex flex-wrap items-center justify-between border-t border-[#eaeaea] pt-4 text-xs text-[#787774]">
+        {/* ── Footer ────────────────────────────────────────────────────── */}
+        <footer className="fade-up stagger-6 flex flex-wrap items-center justify-between border-t border-[#eaeaea] pt-3 pb-1 text-[10px] sm:text-xs text-[#787774] gap-2">
           <span>VENUS — Municipal Confined-Space Safety Infrastructure</span>
-          <span>ISO 45001 Confined Space Safety</span>
+          <span className="hidden sm:inline">ISO 45001 Confined Space Safety</span>
         </footer>
       </div>
     </div>

@@ -47,10 +47,11 @@ export function GasCards({ gas }: { gas: ManholeRecord["gas"] }) {
           ? `Danger ≤${t.warningMin}%vol`
           : `Danger ≥${t.warningMax}${t.unit}`;
 
+        const stagger = ["stagger-1", "stagger-2", "stagger-3", "stagger-4"][GAS_CONFIG.indexOf(GAS_CONFIG.find(g => g.key === key)!)];
         return (
           <div
             key={key}
-            className={`relative overflow-hidden rounded-xl border bg-white p-4 sm:p-5 card-lift ${s.border}`}
+            className={`fade-up ${stagger} relative overflow-hidden rounded-xl border bg-white p-4 sm:p-5 card-lift ${s.border}`}
           >
             {/* Top row */}
             <div className="flex items-center justify-between">

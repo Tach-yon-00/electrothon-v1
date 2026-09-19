@@ -47,7 +47,7 @@ export function StatusHeader({ m }: { m: ManholeRecord }) {
 
   return (
     <section
-      className={`relative overflow-hidden rounded-2xl border ${s.border} ${s.bg} p-5 sm:p-6 transition-colors duration-300`}
+      className={`relative overflow-hidden rounded-2xl border ${s.border} ${s.bg} p-4 sm:p-6 status-transition`}
     >
       <div className="relative z-10 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-4 sm:gap-5">

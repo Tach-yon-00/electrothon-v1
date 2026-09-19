@@ -22,7 +22,7 @@ export function ManholeSelector({
     <div
       role="tablist"
       aria-label="Select monitoring node"
-      className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-6 gap-2 rounded-xl bg-white border border-[#eaeaea] p-2"
+      className="flex gap-2 rounded-xl bg-white border border-[#eaeaea] p-2 overflow-x-auto sm:grid sm:grid-cols-3 lg:grid-cols-6 scrollbar-hide snap-x snap-mandatory"
     >
       {manholes.map((m) => {
         const active = m.manhole_id === selectedId;
@@ -35,7 +35,7 @@ export function ManholeSelector({
             role="tab"
             aria-selected={active}
             onClick={() => onSelect(m.manhole_id)}
-            className={`group flex flex-col justify-between rounded-lg p-2.5 text-left transition-all duration-200 cursor-pointer ${
+            className={`group flex flex-col justify-between shrink-0 w-40 sm:w-auto snap-start rounded-lg p-2.5 text-left transition-all duration-200 cursor-pointer ${
               active
                 ? `${s.bg} ${s.border} border ring-1 ring-offset-0`
                 : "hover:bg-[#f7f6f3] border border-transparent"
