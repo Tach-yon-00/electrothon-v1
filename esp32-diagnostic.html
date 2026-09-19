@@ -1,0 +1,159 @@
+<title>ESP32 Connection Diagnostic</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: system-ui, sans-serif;
+  padding: 2rem;
+  background: #f7f6f3;
+  max-width: 800px;
+  margin: 0 auto;
+}
+h1 { margin-bottom: 1rem; color: #111; }
+.status {
+  padding: 1rem;
+  margin: 1rem 0;
+  border-radius: 8px;
+  border: 1px solid #eaeaea;
+  background: white;
+}
+.status.loading { border-color: #fbbf24; background: #fef3c7; }
+.status.success { border-color: #10b981; background: #d1fae5; }
+.status.error { border-color: #ef4444; background: #fee2e2; }
+pre {
+  background: #f9f9f9;
+  padding: 1rem;
+  border-radius: 4px;
+  overflow-x: auto;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+}
+.label { font-weight: 600; margin-bottom: 0.5rem; }
+button {
+  background: #111;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-top: 1rem;
+}
+button:hover { background: #333; }
+</style>
+
+<h1>🔧 ESP32 → Supabase Connection Diagnostic</h1>
+
+<div id="env-check" class="status loading">
+  <div class="label">1. Environment Variables</div>
+  <div id="env-result">Checking...</div>
+</div>
+
+<div id="supabase-check" class="status loading">
+  <div class="label">2. Supabase Connection</div>
+  <div id="supabase-result">Checking...</div>
+</div>
+
+<div id="data-check" class="status loading">
+  <div class="label">3. Latest ESP32 Data</div>
+  <div id="data-result">Checking...</div>
+</div>
+
+<div id="realtime-check" class="status loading">
+  <div class="label">4. Realtime Subscription</div>
+  <div id="realtime-result">Checking...</div>
+</div>
+
+<button onclick="location.reload()">Refresh Test</button>
+
+<script type="module">
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/+esm';
+
+const SUPABASE_URL = "https://oqwkasqjeqpywkxoygwq.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xd2thc3FqZXFweXdreG95Z3dxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk3NTk5OTMsImV4cCI6MjEwNTMzNTk5M30.z2NlpR16qkEGZne__d8OE2fWDCbrr0HKjV2_dlGPGUE";
+
+function setStatus(id, status, html) {
+  const el = document.getElementById(id);
+  el.className = `status ${status}`;
+  document.getElementById(id + '-result').innerHTML = html;
+}
+
+// Check 1: Environment
+setStatus('env-check', 'success', '✅ Supabase credentials hardcoded in test page');
+
+// Check 2: Supabase Connection
+try {
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/`, {
+    headers: { 'apikey': SUPABASE_KEY }
+  });
+  setStatus('supabase-check', response.ok ? 'success' : 'error',
+    response.ok
+      ? '✅ Supabase API reachable'
+      : `❌ Supabase returned ${response.status}`
+  );
+} catch (err) {
+  setStatus('supabase-check', 'error', `❌ Connection failed: ${err.message}`);
+}
+
+// Check 3: Latest Data
+try {
+  const response = await fetch(
+    `${SUPABASE_URL}/rest/v1/sensor_readings?manhole_id=eq.MH-02&order=created_at.desc&limit=1`,
+    { headers: { 'apikey': SUPABASE_KEY } }
+  );
+  const data = await response.json();
+
+  if (data.length > 0) {
+    const row = data[0];
+    const age = Math.round((Date.now() - new Date(row.created_at).getTime()) / 1000);
+    const isLive = age < 60;
+
+    setStatus('data-check', isLive ? 'success' : 'error',
+      `${isLive ? '✅' : '⚠️'} Latest reading: <b>${age}s ago</b><pre>${JSON.stringify(row, null, 2)}</pre>${isLive ? 'ESP32 is uploading!' : 'Data is stale (>60s old)'}`
+    );
+  } else {
+    setStatus('data-check', 'error', '❌ No data in sensor_readings table for MH-02');
+  }
+} catch (err) {
+  setStatus('data-check', 'error', `❌ Failed to fetch: ${err.message}`);
+}
+
+// Check 4: Realtime
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
+  realtime: { params: { eventsPerSecond: 10 } }
+});
+
+let receivedRealtimeEvent = false;
+const channel = supabase
+  .channel('sensor_readings_all')
+  .on('postgres_changes', {
+    event: 'INSERT',
+    schema: 'public',
+    table: 'sensor_readings'
+  }, (payload) => {
+    receivedRealtimeEvent = true;
+    const row = payload.new;
+    if (row.manhole_id === 'MH-02') {
+      setStatus('realtime-check', 'success',
+        `✅ Realtime working! Received event:<pre>${JSON.stringify(row, null, 2)}</pre>`
+      );
+    }
+  })
+  .subscribe((status, err) => {
+    console.log('[Realtime]', status, err);
+    if (status === 'SUBSCRIBED') {
+      setStatus('realtime-check', 'success',
+        '✅ Subscribed. Waiting for next ESP32 upload (every 5s)...'
+      );
+      setTimeout(() => {
+        if (!receivedRealtimeEvent) {
+          setStatus('realtime-check', 'error',
+            '⚠️ Subscribed but no events received in 15s. Check if sensor_readings is published to Realtime.<br><br>Run this SQL in Supabase dashboard:<pre>ALTER PUBLICATION supabase_realtime ADD TABLE sensor_readings;</pre>'
+          );
+        }
+      }, 15000);
+    } else if (status === 'CHANNEL_ERROR') {
+      setStatus('realtime-check', 'error', `❌ Realtime error: ${err}`);
+    } else if (status === 'TIMED_OUT') {
+      setStatus('realtime-check', 'error', '❌ Realtime connection timed out');
+    }
+  });
+</script>

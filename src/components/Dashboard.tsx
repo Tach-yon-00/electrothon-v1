@@ -50,8 +50,9 @@ export function Dashboard() {
 
   const [activeView, setActiveView] = useState<"dashboard" | "map">("dashboard");
   const [modalManhole, setModalManhole] = useState<ManholeRecord | null>(null);
+  const [showDebug, setShowDebug] = useState(false);
 
-  const { isLive: esp32Live } = useESP32Stream("MH-02");
+  const { isLive: esp32Live, reading: esp32Reading, lastReceivedAt } = useESP32Stream("MH-02");
 
   return (
     <div className="min-h-[100dvh] bg-[#f7f6f3] text-[#111111]">
@@ -123,6 +124,52 @@ export function Dashboard() {
             </div>
           </div>
         </header>
+
+        {/* ── Debug Panel ───────────────────────────────────────────────── */}
+        <details className="fade-up stagger-1 rounded-xl border border-[#eaeaea] bg-white">
+          <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-[#787774] hover:text-[#111] transition-colors">
+            🔧 ESP32 Connection Debug
+          </summary>
+          <div className="border-t border-[#eaeaea] p-4 space-y-2 text-xs font-mono">
+            <div className="flex justify-between">
+              <span className="text-[#787774]">Status:</span>
+              <span className={esp32Live ? "text-emerald-700 font-bold" : "text-[#787774]"}>
+                {esp32Live ? "✅ ESP32 Live" : "⚪ Mock Mode"}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-[#787774]">Last Reading:</span>
+              <span className="text-[#555]">
+                {esp32Reading ? new Date(esp32Reading.created_at).toLocaleTimeString() : "Never"}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-[#787774]">Data Age:</span>
+              <span className="text-[#555]">
+                {lastReceivedAt ? `${Math.round((Date.now() - lastReceivedAt) / 1000)}s ago` : "N/A"}
+              </span>
+            </div>
+            {esp32Reading && (
+              <>
+                <div className="flex justify-between">
+                  <span className="text-[#787774]">CO Raw:</span>
+                  <span className="text-[#555]">{esp32Reading.co_raw}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[#787774]">CH₄ Raw:</span>
+                  <span className="text-[#555]">{esp32Reading.ch4_raw}</span>
+                </div>
+              </>
+            )}
+            <div className="pt-2 border-t border-[#eaeaea] text-[#787774]">
+              <div>Console logs: Check F12 → Console for:</div>
+              <div className="pl-2 mt-1 text-[10px]">
+                <div>• [VENUS] Realtime status</div>
+                <div>• [ESP32] New reading received</div>
+              </div>
+            </div>
+          </div>
+        </details>
 
         {/* ── City Map View ─────────────────────────────────────────────── */}
         {activeView === "map" && (
