@@ -31,8 +31,8 @@
 // ──────────────────────────────────────────────────────────
 // WiFi credentials
 // ──────────────────────────────────────────────────────────
-const char* WIFI_SSID     = "Rithesh.shetty";
-const char* WIFI_PASSWORD = "12345612";
+const char* WIFI_SSID     = "TachYoN";
+const char* WIFI_PASSWORD = "niqqa911";
 
 // ──────────────────────────────────────────────────────────
 // Supabase config
