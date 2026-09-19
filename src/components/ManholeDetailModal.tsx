@@ -177,7 +177,7 @@ export function ManholeDetailModal({ manhole, onClose, onSelectForMonitoring }: 
                       <div className="space-y-1 pt-2 border-t border-[#eaeaea] text-[10px] text-[#787774]">
                         <div className="flex items-center justify-between">
                           <span>Recorded</span>
-                          <span className="font-mono text-[#555]">{new Date(peak.recordedAt).toLocaleDateString()}</span>
+                          <span className="font-mono text-[#555]" suppressHydrationWarning>{new Date(peak.recordedAt).toLocaleDateString("en-GB")}</span>
                         </div>
                         {peak.incidentId && (
                           <div className="flex items-center justify-between">

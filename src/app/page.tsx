@@ -112,10 +112,10 @@ export default function Home() {
               esp32Live
                 ? "bg-sky-50 border-sky-200 text-sky-700"
                 : "bg-[#f7f6f3] border-[#eaeaea] text-[#787774]"
-            }`}>
+            }`} suppressHydrationWarning>
               <HardDrive size={12} weight="bold" />
-              <span>{esp32Live ? "MH-02 · ESP32 Live" : "MH-02 · Mock"}</span>
-              {esp32Live && <span className="h-1.5 w-1.5 rounded-full bg-sky-400 animate-pulse" />}
+              <span suppressHydrationWarning>{esp32Live ? "MH-02 · ESP32 Live" : "MH-02 · Mock"}</span>
+              <span className={`h-1.5 w-1.5 rounded-full bg-sky-400 transition-opacity ${esp32Live ? "opacity-100 animate-pulse" : "opacity-0"}`} />
             </div>
           </div>
         </header>
